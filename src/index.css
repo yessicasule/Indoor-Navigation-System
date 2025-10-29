@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Metro Mitra Smart City Design System */
+    --background: 0 0% 100%;
+    --foreground: 199 56% 25%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 199 56% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 199 56% 25%;
+
+    /* Primary: Indigo Dye - Deep, trustworthy blue */
+    --primary: 199 56% 25%;
+    --primary-foreground: 203 100% 90%;
+
+    /* Secondary: Picton Blue - Vibrant accent */
+    --secondary: 199 57% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted: Soft mint for backgrounds */
+    --muted: 178 56% 82%;
+    --muted-foreground: 199 56% 35%;
+
+    /* Accent: Moonstone - Cool medium blue */
+    --accent: 193 48% 59%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 193 48% 85%;
+    --input: 193 48% 85%;
+    --ring: 199 57% 60%;
+
+    --radius: 1rem;
+
+    /* Custom Metro Colors */
+    --metro-mint: 178 56% 82%;
+    --metro-moonstone: 193 48% 59%;
+    --metro-indigo: 199 56% 25%;
+    --metro-columbia: 203 100% 90%;
+    --metro-picton: 199 57% 60%;
+
+    /* Metro Lines */
+    --line-blue: 220 100% 50%;
+    --line-red: 0 84% 60%;
+    --line-aqua: 178 56% 65%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--metro-picton)) 0%, hsl(var(--metro-indigo)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--metro-mint) / 0.1) 0%, hsl(var(--metro-columbia) / 0.05) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(var(--background) / 0.8) 0%, hsl(var(--background) / 0.6) 100%);
+
+    /* Shadows */
+    --shadow-glow: 0 8px 32px hsl(var(--metro-picton) / 0.15);
+    --shadow-card: 0 4px 16px hsl(var(--metro-indigo) / 0.08);
+    --shadow-float: 0 12px 40px hsl(var(--metro-indigo) / 0.12);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .dark {
+    --background: 199 56% 8%;
+    --foreground: 203 100% 90%;
+
+    --card: 199 56% 12%;
+    --card-foreground: 203 100% 90%;
+
+    --popover: 199 56% 12%;
+    --popover-foreground: 203 100% 90%;
+
+    --primary: 199 57% 60%;
+    --primary-foreground: 199 56% 10%;
+
+    --secondary: 199 56% 20%;
+    --secondary-foreground: 203 100% 90%;
+
+    --muted: 199 56% 18%;
+    --muted-foreground: 178 56% 70%;
+
+    --accent: 193 48% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 199 56% 20%;
+    --input: 199 56% 20%;
+    --ring: 199 57% 60%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(var(--metro-indigo)) 0%, hsl(199 56% 15%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--metro-indigo) / 0.4) 0%, hsl(var(--metro-picton) / 0.1) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(var(--background) / 0.95) 0%, hsl(var(--background) / 0.8) 100%);
+
+    --shadow-glow: 0 8px 32px hsl(var(--metro-picton) / 0.25);
+    --shadow-card: 0 4px 16px hsl(0 0% 0% / 0.3);
+    --shadow-float: 0 12px 40px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Glass morphism utility */
+  .glass {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
