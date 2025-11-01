@@ -1,32 +1,57 @@
-import { useState } from "react";
-import { Search, QrCode, Route, MapPin, Clock } from "lucide-react";
+import { TrainFront, QrCode, MapPin, Clock } from "lucide-react";
+// We removed 'Search' and 'Input' as they are now in RoutePlanner
+// We also removed 'useState' as it's also handled in RoutePlanner
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import heroImage from "@/assets/hero-metro.jpg";
-import mumbaiSkyline from "@/assets/mumbai-skyline.jpg";
+// FIX: Changed path aliases to relative paths
+import heroImage from "../assets/hero-metro.jpg";
+import mumbaiSkyline from "../assets/mumbai-skyline.jpg";
+
+// --- THIS IS OUR NEW COMPONENT ---
+// FIX: Changed path aliases to relative paths
+import RoutePlanner from "../components/RoutePlanner";
 
 const Home = () => {
-  const [source, setSource] = useState("");
-  const [destination, setDestination] = useState("");
+  // We've removed the [source, setSource] and [destination, setDestination] state
+  // It is now managed inside the RoutePlanner component.
 
+  // --- THIS IS THE UPDATED 'quickActions' ARRAY ---
+  // "Plan Route" is now "Find Trains"
   const quickActions = [
     { icon: QrCode, label: "Scan QR", path: "/ar", variant: "hero" as const },
-    { icon: Route, label: "Plan Route", path: "/map", variant: "secondary" as const },
-    { icon: MapPin, label: "Nearby Spots", path: "/nearby", variant: "secondary" as const },
-    { icon: Clock, label: "My Trips", path: "/profile", variant: "secondary" as const },
+    {
+      icon: TrainFront, // New Icon
+      label: "Find Trains", // New Label
+      path: "/timings", // New Path (for later)
+      variant: "secondary" as const,
+    },
+    {
+      icon: MapPin,
+      label: "Nearby Spots",
+      path: "/nearby",
+      variant: "secondary" as const,
+    },
+    {
+      icon: Clock,
+      label: "My Trips",
+      path: "/profile",
+      variant: "secondary" as const,
+    },
   ];
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
+      {/* Hero Section (No changes here) */}
       <section className="relative h-[40vh] overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={heroImage}
             alt="Mumbai Metro Station"
             className="w-full h-full object-cover"
+            // FIX: Removed the stray '*' before onError
+            onError={(e) => { e.currentTarget.src = 'https://placehold.co/1920x480/003366/FFFFFF?text=Metro+Mitra'; }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background" />
         </div>
@@ -40,40 +65,14 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Search Section */}
+      {/* --- THIS IS THE UPDATED SECTION --- */}
+      {/* We are replacing your old 'Search Section' with our new component */}
       <section className="container mx-auto px-4 -mt-8 relative z-20 animate-slide-up">
-        <Card className="glass shadow-[var(--shadow-float)]">
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  placeholder="From: Select station"
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
-                  className="pl-10 h-12 bg-background/50"
-                />
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  placeholder="To: Select station"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  className="pl-10 h-12 bg-background/50"
-                />
-              </div>
-            </div>
-            <Link to="/map">
-              <Button variant="hero" size="lg" className="w-full">
-                Find Route
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* This <RoutePlanner /> component now contains the full 3-part planner */}
+        <RoutePlanner />
       </section>
 
-      {/* Quick Actions */}
+      {/* Quick Actions (This section is now updated via the array above) */}
       <section className="container mx-auto px-4 mt-8">
         <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
         <div className="grid grid-cols-2 gap-4">
@@ -86,7 +85,13 @@ const Home = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
-                    <div className={`h-14 w-14 rounded-full ${action.variant === 'hero' ? 'bg-gradient-to-br from-[hsl(var(--metro-picton))] to-[hsl(var(--metro-indigo))]' : 'bg-secondary'} flex items-center justify-center`}>
+                    <div
+                      className={`h-14 w-14 rounded-full ${
+                        action.variant === "hero"
+                          ? "bg-gradient-to-br from-[hsl(var(--metro-picton))] to-[hsl(var(--metro-indigo))]"
+                          : "bg-secondary"
+                      } flex items-center justify-center`}
+                    >
                       <Icon className="h-7 w-7 text-white" />
                     </div>
                     <span className="font-medium">{action.label}</span>
@@ -98,7 +103,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section (No changes here) */}
       <section className="container mx-auto px-4 mt-8 mb-8">
         <Card className="overflow-hidden">
           <div className="relative h-48">
@@ -106,6 +111,7 @@ const Home = () => {
               src={mumbaiSkyline}
               alt="Mumbai Skyline"
               className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x400/333/FFF?text=Mumbai+Skyline'; }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
@@ -140,3 +146,4 @@ const Home = () => {
 };
 
 export default Home;
+
