@@ -1,0 +1,17 @@
+Node modules
+
+node_modules/
+
+Firebase service account key
+
+!! THIS FILE IS SECRET AND MUST NOT BE SHARED !!
+
+serviceAccountKey.json
+
+Build output
+
+dist/
+
+Log files
+
+*.log
