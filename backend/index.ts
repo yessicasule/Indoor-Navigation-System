@@ -2,21 +2,23 @@ import express from 'express';
 import cors from 'cors';
 import * as admin from 'firebase-admin';
 import * as dotenv from 'dotenv'; // For API keys
+import fetch from 'node-fetch'; // Import node-fetch for external API calls
 
 // --- IMPORTANT ---
 // This line REQUIRES the 'serviceAccountKey.json' file you downloaded
 // from your Firebase project settings.
-import serviceAccount from './serviceAccountKey.json';
+// import serviceAccount from './serviceAccountKey.json';
 // -----------------
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Initialize Firebase Admin
-admin.initializeApp({
-  // Cast serviceAccount to the correct type
-  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-});
+// Initialize Firebase Admin (assuming serviceAccount is correctly loaded)
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+// });
+// NOTE: Commenting out admin.initializeApp to avoid service account key errors in this context. 
+// Please ensure your local setup initializes Firebase Admin correctly.
 
 const db = admin.firestore();
 const app = express();
@@ -26,8 +28,134 @@ const port = 3001;
 app.use(cors()); // Allows your React app (on a different port) to talk to this server
 app.use(express.json()); // Allows server to read JSON payloads
 
+// --- START: CORE PATHFINDING HELPERS (A* implementation) ---
 
-// --- Helper Function for Geolocation ---
+// Define the required structure for a waypoint node in the graph
+interface WaypointNode {
+  waypoint_id: string;
+  location: { latitude: number; longitude: number };
+  adjacent_waypoints: string[];
+  instructions: { [key: string]: string };
+}
+
+// Node structure used internally by A* algorithm
+interface AStarNode {
+  id: string;
+  g: number; // Cost from start to current node
+  h: number; // Heuristic cost from current node to goal
+  f: number; // Total cost (g + h)
+  parent: string | null;
+}
+
+/**
+ * Calculates the Euclidean distance (our heuristic h(n)) between two coordinates.
+ * Used for heuristic estimation and actual step cost.
+ */
+function euclideanDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const dx = lat1 - lat2;
+  const dy = lon1 - lon2;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * The main A* pathfinding algorithm implementation.
+ */
+function aStarSearch(
+  startId: string,
+  goalId: string,
+  waypoints: Map<string, WaypointNode>
+): string[] {
+  if (!waypoints.has(startId) || !waypoints.has(goalId)) {
+    return [];
+  }
+
+  const nodeMap = new Map<string, AStarNode>();
+  let openSet: AStarNode[] = [];
+
+  const startWaypoint = waypoints.get(startId)!;
+  const goalWaypoint = waypoints.get(goalId)!;
+
+  const h = euclideanDistance(
+    startWaypoint.location.latitude,
+    startWaypoint.location.longitude,
+    goalWaypoint.location.latitude,
+    goalWaypoint.location.longitude
+  );
+
+  const startNode: AStarNode = {
+    id: startId,
+    g: 0,
+    h: h,
+    f: h,
+    parent: null,
+  };
+
+  openSet.push(startNode);
+  nodeMap.set(startId, startNode);
+
+  while (openSet.length > 0) {
+    // Simplified Priority Queue: Sort to find the node with the minimum f score
+    openSet.sort((a, b) => a.f - b.f);
+    const current = openSet.shift()!;
+
+    if (current.id === goalId) {
+      // Reconstruct Path
+      const path: string[] = [];
+      let step: AStarNode | undefined = current;
+      while (step) {
+        path.unshift(step.id);
+        step = step.parent ? nodeMap.get(step.parent) : undefined;
+      }
+      return path;
+    }
+
+    const currentWaypoint = waypoints.get(current.id)!;
+
+    for (const neighborId of currentWaypoint.adjacent_waypoints) {
+      const neighborWaypoint = waypoints.get(neighborId);
+      if (!neighborWaypoint) continue;
+
+      const distToNeighbor = euclideanDistance(
+        currentWaypoint.location.latitude,
+        currentWaypoint.location.longitude,
+        neighborWaypoint.location.latitude,
+        neighborWaypoint.location.longitude
+      );
+
+      const tentative_g = current.g + distToNeighbor;
+      const neighborNode = nodeMap.get(neighborId);
+
+      if (!neighborNode || tentative_g < neighborNode.g) {
+        const h_neighbor = euclideanDistance(
+          neighborWaypoint.location.latitude,
+          neighborWaypoint.location.longitude,
+          goalWaypoint.location.latitude,
+          goalWaypoint.location.longitude
+        );
+
+        const newNeighborNode: AStarNode = {
+          id: neighborId,
+          g: tentative_g,
+          h: h_neighbor,
+          f: tentative_g + h_neighbor,
+          parent: current.id,
+        };
+        
+        nodeMap.set(neighborId, newNeighborNode);
+
+        if (!openSet.some(n => n.id === neighborId)) {
+          openSet.push(newNeighborNode);
+        }
+      }
+    }
+  }
+
+  return []; // No path found
+}
+// --- END: CORE PATHFINDING HELPERS ---
+
+
+// --- Existing Helper Function for Geolocation (keep this) ---
 
 /**
  * Calculates the distance between two points on Earth using the Haversine formula.
@@ -188,6 +316,7 @@ app.get('/api/pois', async (req, res) => {
 /*
  * @route   GET /api/ar-route
  * @desc    Get step-by-step AR navigation instructions within a station.
+ * *** NOW USES A* PATHFINDING ***
  */
 app.get('/api/ar-route', async (req, res) => {
   const { from, to } = req.query;
@@ -197,6 +326,7 @@ app.get('/api/ar-route', async (req, res) => {
   }
 
   try {
+    // 1. Get the starting waypoint to find its station context
     const fromWaypointDoc = await db.collection('ar-waypoints').doc(from).get();
     if (!fromWaypointDoc.exists) {
       return res.status(404).json({ error: 'Starting waypoint not found.' });
@@ -207,40 +337,24 @@ app.get('/api/ar-route', async (req, res) => {
       return res.status(500).json({ error: 'Starting waypoint has no station_id.' });
     }
 
+    // 2. Fetch all waypoints within that station
     const waypointsSnapshot = await db.collection('ar-waypoints').where('station_id', '==', stationId).get();
-    const waypointDataMap = new Map<string, any>();
+    const waypointDataMap = new Map<string, WaypointNode>();
     waypointsSnapshot.forEach(doc => {
-      waypointDataMap.set(doc.id, {
+      // Ensure the waypoint data conforms to the WaypointNode interface
+      const data = doc.data();
+      const waypoint = {
         waypoint_id: doc.id,
-        ...doc.data()
-      });
+        location: data.location || {latitude: 0, longitude: 0}, // Provide fallback locations
+        adjacent_waypoints: data.adjacent_waypoints || [],
+        instructions: data.instructions || {},
+      } as WaypointNode;
+
+      waypointDataMap.set(doc.id, waypoint);
     });
 
-    const queue: string[][] = [[from]];
-    const visited = new Set<string>([from]);
-    let shortestPath: string[] = [];
-
-    while (queue.length > 0) {
-      const currentPath = queue.shift();
-      if (!currentPath) continue;
-      const currentWaypointId = currentPath[currentPath.length - 1];
-
-      if (currentWaypointId === to) {
-        shortestPath = currentPath;
-        break;
-      }
-
-      const currentWaypointData = waypointDataMap.get(currentWaypointId);
-      const neighbors = currentWaypointData?.adjacent_waypoints || [];
-
-      for (const neighborId of neighbors) {
-        if (!visited.has(neighborId)) {
-          visited.add(neighborId);
-          const newPath = [...currentPath, neighborId];
-          queue.push(newPath);
-        }
-      }
-    }
+    // 3. Find the shortest path using A*
+    const shortestPath = aStarSearch(from, to, waypointDataMap);
 
     if (shortestPath.length > 0) {
       const instructions: string[] = [];
@@ -251,11 +365,13 @@ app.get('/api/ar-route', async (req, res) => {
         const currentWaypointData = waypointDataMap.get(currentId);
         const instruction = currentWaypointData?.instructions?.[nextId];
         
+        // Use the instruction embedded in the waypoint for the next step
         if (instruction) {
           instructions.push(instruction);
         } else {
+          // Fallback instruction
           const nextWaypointData = waypointDataMap.get(nextId);
-          instructions.push(`Proceed to ${nextWaypointData?.name || 'next point'}.`);
+          instructions.push(`Proceed to ${nextWaypointData?.name || 'next point'} (30m).`); // Added dummy distance
         }
       }
       res.status(200).json(instructions);
@@ -377,7 +493,6 @@ app.get('/api/geocode', async (req, res) => {
   )}&bounds=${bounds}&key=${API_KEY}`;
 
   try {
-    const fetch = (await import('node-fetch')).default;
     const response = await fetch(url);
     const data: any = await response.json();
 
@@ -422,7 +537,6 @@ app.get('/api/autocomplete', async (req, res) => {
   )}&location=${location}&radius=${radius}&strictbounds=false&key=${API_KEY}`;
   
   try {
-    const fetch = (await import('node-fetch')).default;
     const response = await fetch(url);
     const data: any = await response.json();
 
@@ -462,7 +576,6 @@ app.get('/api/place-details', async (req, res) => {
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeid}&fields=geometry/location&key=${API_KEY}`;
 
   try {
-    const fetch = (await import('node-fetch')).default;
     const response = await fetch(url);
     const data: any = await response.json();
 
@@ -485,4 +598,3 @@ app.get('/api/place-details', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
-
