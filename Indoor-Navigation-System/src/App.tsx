@@ -11,6 +11,7 @@ import Nearby from "./pages/Nearby";
 import ARGuidance from "./pages/ARGuidance";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import TestAR from "./pages/ARtestMihit";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/nearby" element={<Nearby />} />
               <Route path="/ar" element={<ARGuidance />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/ARtest" element={<TestAR />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
