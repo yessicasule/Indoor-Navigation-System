@@ -7,16 +7,16 @@ import fetch from 'node-fetch'; // Import node-fetch for external API calls
 // --- IMPORTANT ---
 // This line REQUIRES the 'serviceAccountKey.json' file you downloaded
 // from your Firebase project settings.
-// import serviceAccount from './serviceAccountKey.json';
+import serviceAccount from './serviceAccountKey.json';
 // -----------------
 
 // Load environment variables from .env file
 dotenv.config();
 
 // Initialize Firebase Admin (assuming serviceAccount is correctly loaded)
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-// });
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+});
 // NOTE: Commenting out admin.initializeApp to avoid service account key errors in this context. 
 // Please ensure your local setup initializes Firebase Admin correctly.
 
@@ -36,6 +36,7 @@ interface WaypointNode {
   location: { latitude: number; longitude: number };
   adjacent_waypoints: string[];
   instructions: { [key: string]: string };
+  name?: string;
 }
 
 // Node structure used internally by A* algorithm
@@ -348,6 +349,7 @@ app.get('/api/ar-route', async (req, res) => {
         location: data.location || {latitude: 0, longitude: 0}, // Provide fallback locations
         adjacent_waypoints: data.adjacent_waypoints || [],
         instructions: data.instructions || {},
+        name: data.name,
       } as WaypointNode;
 
       waypointDataMap.set(doc.id, waypoint);
