@@ -61,7 +61,7 @@ export async function getDeviceInfo(): Promise<{ device_model: string | null; os
   const ua = navigator.userAgent;
   let model: string | null = null;
   let os: string | null = null;
-  const uaData = (navigator as Navigator & {
+  const uaData = (navigator as unknown as {
     userAgentData?: { getHighEntropyValues(hints: string[]): Promise<{ model?: string; platform?: string; platformVersion?: string }> };
   }).userAgentData;
   if (uaData) {

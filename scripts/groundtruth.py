@@ -47,6 +47,30 @@ def haversine_m(lat1, lon1, lat2, lon2):
     return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(a))
 
 
+def validate_lines(lines):
+    """Return a list of problems in reference_lines.csv (empty if it is usable)."""
+    required = ["line_id", "lat1", "lon1", "lat2", "lon2", "map_bearing_deg"]
+    missing = [c for c in required if c not in lines]
+    if missing:
+        return [f"missing columns: {', '.join(missing)}"]
+    problems = []
+    if lines.empty:
+        problems.append("no reference lines")
+    for c in ["lat1", "lat2"]:
+        bad = ~pd.to_numeric(lines[c], errors="coerce").between(-90, 90)
+        problems += [f"{lid}: {c} must be a latitude in [-90, 90]" for lid in lines.line_id[bad]]
+    for c in ["lon1", "lon2"]:
+        bad = ~pd.to_numeric(lines[c], errors="coerce").between(-180, 180)
+        problems += [f"{lid}: {c} must be a longitude in [-180, 180]" for lid in lines.line_id[bad]]
+    mb = pd.to_numeric(lines.map_bearing_deg, errors="coerce")
+    problems += [f"{lid}: map_bearing_deg must be in [0, 360)" for lid in lines.line_id[~((mb >= 0) & (mb < 360))]]
+    if lines.line_id.duplicated().any():
+        problems.append(f"duplicate line_id: {', '.join(lines.line_id[lines.line_id.duplicated()].astype(str))}")
+    same = (lines.lat1 == lines.lat2) & (lines.lon1 == lines.lon2)
+    problems += [f"{lid}: both ends have the same coordinates" for lid in lines.line_id[same]]
+    return problems
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("site_id")
@@ -58,6 +82,9 @@ def main():
     site_path = site_dir / "site.json"
     site = json.loads(site_path.read_text(encoding="utf-8"))
     lines = pd.read_csv(site_dir / "reference_lines.csv")
+    problems = validate_lines(lines)
+    if problems:
+        sys.exit("reference_lines.csv:\n  " + "\n  ".join(problems))
     declination = site.get("magnetic_declination_deg")
 
     rows = []

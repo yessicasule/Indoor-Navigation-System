@@ -252,8 +252,8 @@ const RoutePlanner = () => {
         const routeData: Station[] = await routeResponse.json();
         setMetroRoute(routeData);
       }
-    } catch (error: any) {
-      setJourneyError(error.message);
+    } catch (error) {
+      setJourneyError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsFindingJourney(false);
     }

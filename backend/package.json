@@ -1,15 +1,17 @@
 {
-  "name": "backend",
+  "name": "metro-mitra-backend",
   "version": "1.0.0",
   "description": "Backend for Metro Mitra",
   "main": "index.ts",
   "scripts": {
     "start": "ts-node index.ts",
     "dev": "nodemon index.ts",
-    "test": "ts-node astar.test.ts",
+    "test": "tsc --noEmit -p . && node -r ts-node/register --test astar.test.ts app.test.ts",
     "import-site": "ts-node scripts/import-site.ts",
     "anchors": "ts-node scripts/make-anchors.ts",
-    "export": "ts-node scripts/export-telemetry.ts"
+    "export": "ts-node scripts/export-telemetry.ts",
+    "bench": "ts-node bench/astar.bench.ts",
+    "demo": "ts-node scripts/demo-server.ts"
   },
   "keywords": [],
   "author": "",

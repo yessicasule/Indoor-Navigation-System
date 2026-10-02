@@ -1,0 +1,4 @@
+# Generated printable QR sheets (regenerate with: cd backend && npm run anchors)
+data/sites/*/anchors.html
+
+__pycache__/

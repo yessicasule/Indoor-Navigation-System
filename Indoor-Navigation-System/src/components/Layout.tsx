@@ -1,4 +1,4 @@
-import { Home, Map, Navigation, MapPin, QrCode } from "lucide-react";
+import { Home, MapPin, QrCode } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
@@ -18,10 +18,14 @@ const Layout = ({ children }: LayoutProps) => {
     setMounted(true);
   }, []);
 
+  // The camera-based navigation screen is full-screen: header and tab bar would cover its
+  // HUD and controls. (Study 1 capture at /ar?study=1 is a normal page.)
+  const immersive = location.pathname === "/ar" && new URLSearchParams(location.search).get("study") !== "1";
+  if (immersive) return <main>{children}</main>;
+
   const navItems = [
     { path: "/", icon: Home, label: "Home" },
-    { path: "/map", icon: Map, label: "Map" },
-    { path: "/ar", icon: Navigation, label: "AR" },
+    { path: "/ar", icon: QrCode, label: "Scan" },
     { path: "/nearby", icon: MapPin, label: "Nearby" },
   ];
 
@@ -39,6 +43,7 @@ const Layout = ({ children }: LayoutProps) => {
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="rounded-full"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             >
               {theme === "dark" ? (
                 <Sun className="h-5 w-5" />
@@ -53,19 +58,8 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Main content with top padding for fixed header */}
       <main className="pt-16">{children}</main>
 
-      {/* Floating QR Scan Button */}
-      <Link to="/ar">
-        <Button
-          size="icon"
-          variant="floating"
-          className="fixed bottom-24 right-6 z-50 h-16 w-16 shadow-2xl"
-        >
-          <QrCode className="h-7 w-7" />
-        </Button>
-      </Link>
-
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-border/50">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-border/50" aria-label="Main">
         <div className="container mx-auto px-2">
           <div className="flex items-center justify-around h-20">
             {navItems.map((item) => {
@@ -75,7 +69,8 @@ const Layout = ({ children }: LayoutProps) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="flex flex-col items-center justify-center flex-1 h-full group"
+                  aria-current={isActive ? "page" : undefined}
+                  className="relative flex flex-col items-center justify-center flex-1 h-full group"
                 >
                   <div
                     className={`flex flex-col items-center transition-all duration-300 ${
@@ -88,7 +83,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <span className="text-xs font-medium">{item.label}</span>
                   </div>
                   {isActive && (
-                    <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-12 h-1 bg-secondary rounded-b-full animate-slide-up" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-secondary rounded-b-full animate-slide-up" />
                   )}
                 </Link>
               );

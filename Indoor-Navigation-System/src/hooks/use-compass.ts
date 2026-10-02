@@ -33,7 +33,7 @@ export interface OrientationSample {
 }
 
 type PermissionedDOE = typeof DeviceOrientationEvent & {
-  requestPermission?: () => Promise<"granted" | "denied">;
+  requestPermission?: (absolute?: boolean) => Promise<"granted" | "denied">;
 };
 
 const RAD = Math.PI / 180;
@@ -122,7 +122,9 @@ export function useCompass() {
     const DOE = window.DeviceOrientationEvent as PermissionedDOE;
     if (typeof DOE.requestPermission === "function") {
       try {
-        if ((await DOE.requestPermission()) !== "granted") {
+        // W3C spec: requestPermission(absolute = false) omits the magnetometer, which would
+        // leave deviceorientationabsolute silent. Safari currently ignores the argument.
+        if ((await DOE.requestPermission(true)) !== "granted") {
           setStatus("denied");
           return false;
         }

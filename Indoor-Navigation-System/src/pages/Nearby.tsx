@@ -298,7 +298,7 @@ const Nearby = () => {
         <CardContent className="p-6 text-center space-y-3">
           <h3 className="font-semibold">Discover More</h3>
           <p className="text-sm text-muted-foreground">
-            Explore 100+ attractions across Mumbai Metro network
+            Browse every attraction listed near Mumbai Metro stations
           </p>
           {/* --- NEW: Added onClick Handler --- */}
           <Button

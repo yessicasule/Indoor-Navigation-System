@@ -111,3 +111,42 @@ export function loadSite(siteId: string): { config: SiteConfig; waypoints: SiteW
 
 /** Firestore doc ID for a waypoint: unique across sites, and what QR anchors encode. */
 export const waypointDocId = (siteId: string, nodeId: string) => `${siteId}__${nodeId}`;
+
+/** Make every edge two-way (in place): authors usually list each corridor edge once. */
+export function makeUndirected(waypoints: SiteWaypoint[]): void {
+  const byId = new Map(waypoints.map(w => [w.node_id, w]));
+  for (const w of waypoints) {
+    for (const n of w.neighbors) {
+      const other = byId.get(n);
+      if (other && !other.neighbors.includes(w.node_id)) other.neighbors.push(w.node_id);
+    }
+  }
+}
+
+/** Node IDs not reachable from the first node. */
+export function unreachableFrom(waypoints: SiteWaypoint[]): string[] {
+  if (!waypoints.length) return [];
+  const byId = new Map(waypoints.map(w => [w.node_id, w]));
+  const seen = new Set([waypoints[0].node_id]);
+  const queue = [waypoints[0].node_id];
+  while (queue.length) {
+    for (const n of byId.get(queue.shift()!)?.neighbors ?? []) {
+      if (!seen.has(n)) { seen.add(n); queue.push(n); }
+    }
+  }
+  return waypoints.filter(w => !seen.has(w.node_id)).map(w => w.node_id);
+}
+
+/** The Firestore document stored for a waypoint in ar_waypoints. */
+export const waypointDoc = (siteId: string, w: SiteWaypoint) => ({
+  station_id: siteId,
+  node_id: w.node_id,
+  name: w.name || null,
+  type: w.type,
+  x: w.x,
+  y: w.y,
+  z: w.z,
+  floor: w.floor,
+  neighbors: w.neighbors,
+  anchor_map_bearing_deg: w.anchor_map_bearing_deg,
+});

@@ -93,7 +93,7 @@ Site access is *not* a risk here — that is the entire reason the metro is defe
 - [x] Rewrite `backend/.gitignore` — every comment line is currently missing its `#`, and the `!!` line parses as a negation pattern
 - [x] Remove `node-fetch` + `@types/node-fetch`; use global `fetch`. Backend starts.
 - [ ] Populate `serviceAccountKey.json` (currently 0 bytes); make the failure path soft instead of `exit(1)`
-- [ ] **Fix the three sensor bugs — see §4**
+- [x] **Fix the three sensor bugs — see §4** (code done; confirm on real devices in the pilot)
 - [ ] Stand up HTTPS (Cloudflare Tunnel) + deployed staging
 - [ ] Choose and walk the study building; obtain written permission from the department
 - [ ] Email `contact@icitsc.org`: template, fee, **online presentation option**, review process
@@ -108,8 +108,8 @@ Site access is *not* a risk here — that is the entire reason the metro is defe
 - [ ] Pilot: 2 people, 3 devices including **at least one iPhone**, full flow over HTTPS
 
 ### Week 3 — 17–23 Oct · Telemetry and instrumentation
-- [ ] **Build the telemetry logger (§5).** Without it you will be transcribing compass readings by hand.
-- [ ] Build `scripts/analyse.py` — reads the export, emits every figure
+- [x] **Build the telemetry logger (§5).** Without it you will be transcribing compass readings by hand.
+- [x] Build `scripts/analyse.py` — reads the export, emits every figure
 - [ ] Survey the building: waypoint graph in **metres**, x/y from one origin corner
 - [ ] **Establish ground-truth bearings (§6)** — the methodological crux
 - [ ] Print, laminate, and mount QR anchors; log exact position and mounting bearing of each
@@ -117,7 +117,7 @@ Site access is *not* a risk here — that is the entire reason the metro is defe
 ### Week 4 — 24–30 Oct · Data collection + start writing
 - [ ] **Study 1:** ~30 grid points × 3 devices × 10 s capture. Note nearby steel, lifts, electrical rooms.
 - [ ] **Study 2:** 5 fixed routes from each anchor, logging continuously → drift-vs-distance curve
-- [ ] **Begin writing: Related Work** (§7). Runs in parallel — do not wait for analysis.
+- [x] **Begin writing: Related Work** (§7). Runs in parallel — do not wait for analysis.
 
 ### Week 5 — 31 Oct – 6 Nov · Analysis
 - [ ] All analysis scripted; **4 figures frozen**
