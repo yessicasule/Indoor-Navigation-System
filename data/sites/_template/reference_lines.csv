@@ -1,0 +1,3 @@
+line_id,description,lat1,lon1,lat2,lon2,map_bearing_deg,handheld_compass_deg
+L1,Front facade (south-west corner to north-west corner),19.07600,72.87700,19.07690,72.87710,0,
+L2,North wall (north-west corner to north-east corner),19.07690,72.87710,19.07680,72.87800,90,

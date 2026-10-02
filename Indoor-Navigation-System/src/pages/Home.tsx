@@ -1,4 +1,4 @@
-import { TrainFront, QrCode, MapPin, Clock } from "lucide-react";
+import { QrCode, MapPin } from "lucide-react";
 // We removed 'Search' and 'Input' as they are now in RoutePlanner
 // We also removed 'useState' as it's also handled in RoutePlanner
 
@@ -22,21 +22,9 @@ const Home = () => {
   const quickActions = [
     { icon: QrCode, label: "Scan QR", path: "/ar", variant: "hero" as const },
     {
-      icon: TrainFront, // New Icon
-      label: "Find Trains", // New Label
-      path: "/timings", // New Path (for later)
-      variant: "secondary" as const,
-    },
-    {
       icon: MapPin,
       label: "Nearby Spots",
       path: "/nearby",
-      variant: "secondary" as const,
-    },
-    {
-      icon: Clock,
-      label: "My Trips",
-      path: "/profile",
       variant: "secondary" as const,
     },
   ];

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { API_BASE } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -88,7 +89,7 @@ const RoutePlanner = () => {
     const fetchStations = async () => {
       try {
         setIsStationsLoading(true);
-        const response = await fetch("http://localhost:3001/api/stations");
+        const response = await fetch(`${API_BASE}/api/stations`);
         if (!response.ok) throw new Error("Failed to fetch stations");
         const data: Station[] = await response.json();
         setStations(data);
@@ -111,7 +112,7 @@ const RoutePlanner = () => {
       setIsFetchingFromSuggestions(true);
       try {
         const response = await fetch(
-          `http://localhost:3001/api/autocomplete?input=${encodeURIComponent(
+          `${API_BASE}/api/autocomplete?input=${encodeURIComponent(
             debouncedFromAddress
           )}`
         );
@@ -137,7 +138,7 @@ const RoutePlanner = () => {
       setIsFetchingToSuggestions(true);
       try {
         const response = await fetch(
-          `http://localhost:3001/api/autocomplete?input=${encodeURIComponent(
+          `${API_BASE}/api/autocomplete?input=${encodeURIComponent(
             debouncedToAddress
           )}`
         );
@@ -217,7 +218,7 @@ const RoutePlanner = () => {
     try {
       // --- PART 1: Find Nearest "From" Station ---
       const startResponse = await fetch(
-        `http://localhost:3001/api/nearest-station?lat=${startCoords.lat}&lon=${startCoords.lng}`
+        `${API_BASE}/api/nearest-station?lat=${startCoords.lat}&lon=${startCoords.lng}`
       );
       if (!startResponse.ok) {
         const err = await startResponse.json();
@@ -228,7 +229,7 @@ const RoutePlanner = () => {
 
       // --- PART 2: Find Nearest "To" Station ---
       const endResponse = await fetch(
-        `http://localhost:3001/api/nearest-station?lat=${toCoords.lat}&lon=${toCoords.lng}`
+        `${API_BASE}/api/nearest-station?lat=${toCoords.lat}&lon=${toCoords.lng}`
       );
       if (!endResponse.ok) {
         const err = await endResponse.json();
@@ -242,7 +243,7 @@ const RoutePlanner = () => {
         setMetroRoute([]); // No metro route needed
       } else {
         const routeResponse = await fetch(
-          `http://localhost:3001/api/route?from=${startData.station.station_id}&to=${endData.station.station_id}`
+          `${API_BASE}/api/route?from=${startData.station.station_id}&to=${endData.station.station_id}`
         );
         if (!routeResponse.ok) {
           const err = await routeResponse.json();
@@ -275,7 +276,7 @@ const RoutePlanner = () => {
     setIsFetchingFromSuggestions(true);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/place-details?placeid=${suggestion.place_id}`
+        `${API_BASE}/api/place-details?placeid=${suggestion.place_id}`
       );
       if (!response.ok) throw new Error("Failed to get place details");
       const coords: GeocodeResponse = await response.json();
@@ -302,7 +303,7 @@ const RoutePlanner = () => {
     setIsFetchingToSuggestions(true);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/place-details?placeid=${suggestion.place_id}`
+        `${API_BASE}/api/place-details?placeid=${suggestion.place_id}`
       );
       if (!response.ok) throw new Error("Failed to get place details");
       const coords: GeocodeResponse = await response.json();

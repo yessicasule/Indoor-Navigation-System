@@ -1,4 +1,4 @@
-import { Home, Map, Navigation, MapPin, User, QrCode } from "lucide-react";
+import { Home, Map, Navigation, MapPin, QrCode } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
@@ -23,7 +23,6 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/map", icon: Map, label: "Map" },
     { path: "/ar", icon: Navigation, label: "AR" },
     { path: "/nearby", icon: MapPin, label: "Nearby" },
-    { path: "/profile", icon: User, label: "Profile" },
   ];
 
   return (

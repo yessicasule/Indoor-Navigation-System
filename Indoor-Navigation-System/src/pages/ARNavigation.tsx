@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Navigation, QrCode, MapPin, ArrowRight, RotateCcw, CheckCircle2, Settings, ScanLine } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Navigation, MapPin, ArrowRight, RotateCcw, CheckCircle2, Compass, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import QrScanner from 'qr-scanner';
+import { API_BASE } from '@/lib/api';
+import { useCompass, type CompassStatus } from '@/hooks/use-compass';
+import { parseAnchor } from '@/lib/anchor';
 
 // --- TYPES ---
 interface PathNode {
@@ -11,6 +15,12 @@ interface PathNode {
   name: string;
   x: number;
   y: number;
+  type: string;
+}
+
+interface Destination {
+  doc_id: string;
+  name: string;
   type: string;
 }
 
@@ -23,20 +33,31 @@ const shortestAngleDist = (a0: number, a1: number) => {
 
 const lerp = (start: number, end: number, factor: number) => {
   const dist = shortestAngleDist(start, end);
-  return (start + dist * factor) % 360;
+  return (((start + dist * factor) % 360) + 360) % 360;
 };
 
-const TestAR = () => {
+const COMPASS_LABEL: Record<CompassStatus, string> = {
+  'insecure': 'Unavailable — page must be served over HTTPS',
+  'needs-gesture': 'Tap to enable',
+  'waiting': 'Waiting for sensor…',
+  'active': '',
+  'denied': 'Permission denied — allow Motion & Orientation in Safari settings',
+  'unsupported': 'Not supported on this device',
+};
+
+const ARNavigation = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const rawHeadingRef = useRef(0);
+  const compass = useCompass();
+  const rawHeading = () => compass.sampleRef.current?.heading ?? 0;
   
   // --- APP STATES ---
   const [appState, setAppState] = useState<'SCAN' | 'SELECT' | 'NAVIGATE'>('SCAN');
-  const [backendUrl, setBackendUrl] = useState("http://192.168.1.6:3001"); 
   
   // --- DATA STATES ---
+  const [siteId, setSiteId] = useState<string>("");
   const [startNodeId, setStartNodeId] = useState<string>(""); 
-  const [destinations, setDestinations] = useState<any[]>([]);
+  const [startName, setStartName] = useState<string>("");
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedDest, setSelectedDest] = useState<string>("");
   
   // --- NAVIGATION STATES ---
@@ -104,71 +125,85 @@ const TestAR = () => {
   // ------------------------------------------------------------------
   // 2. COMPASS LOGIC
   // ------------------------------------------------------------------
+  // Listener setup (iOS permission, absolute vs. relative events) lives in useCompass.
   useEffect(() => {
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-       let compass = e.alpha || 0;
-       if ((e as any).webkitCompassHeading) compass = (e as any).webkitCompassHeading;
-       else compass = 360 - compass;
-       rawHeadingRef.current = compass;
-    };
-    window.addEventListener('deviceorientation', handleOrientation);
+    if (!window.isSecureContext) {
+      toast.error("Camera and compass need HTTPS — open this page via the tunnel URL.");
+    }
 
     let animationFrameId: number;
     const updateLoop = () => {
-      setSmoothHeading(prev => lerp(prev, rawHeadingRef.current, 0.1));
+      const sample = compass.sampleRef.current;
+      if (sample) setSmoothHeading(prev => lerp(prev, sample.heading, 0.1));
       animationFrameId = requestAnimationFrame(updateLoop);
     };
     updateLoop();
 
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [compass.sampleRef]);
 
 
   // ------------------------------------------------------------------
   // 3. QR HANDLER
   // ------------------------------------------------------------------
+  const busyRef = useRef(false); // the scanner fires ~5×/s; handle one anchor at a time
+
   const processCode = async (code: string) => {
-      if (appState !== 'SCAN') return;
+      if (busyRef.current) return;
+      const anchor = parseAnchor(code);
+      if (!anchor) {
+          toast.error("Not a navigation anchor QR code");
+          return;
+      }
 
-      // HACK: Assuming hardcoded station ID for demo
-      setStartNodeId(code);
-      const stationIdInDB = "azad_nagar_metro"; 
-
-      toast.success(`Scanned: ${code}`);
-      
+      busyRef.current = true;
       try {
-          const baseUrl = backendUrl.replace(/\/$/, '');
-          const res = await fetch(`${baseUrl}/api/destinations?stationId=${stationIdInDB}`);
-          
-          if (!res.ok) throw new Error("Network Error");
-          
-          const data = await res.json();
-          if (data.length === 0) {
-              toast.warning("No destinations found. Check DB.");
-          } else {
-              toast.success(`${data.length} destinations loaded`);
-              setDestinations(data);
-              setAppState('SELECT');
+          const [waypointRes, destRes] = await Promise.all([
+              fetch(`${API_BASE}/api/waypoints/${encodeURIComponent(anchor.nodeId)}`),
+              fetch(`${API_BASE}/api/destinations?stationId=${encodeURIComponent(anchor.siteId)}`),
+          ]);
+          if (waypointRes.status === 404) {
+              toast.error(`Unknown anchor: ${anchor.nodeId}`);
+              return;
           }
+          if (!waypointRes.ok || !destRes.ok) throw new Error("Network Error");
+
+          const waypoint = await waypointRes.json();
+          if (waypoint.station_id !== anchor.siteId) {
+              toast.error(`Anchor ${anchor.nodeId} does not belong to site ${anchor.siteId}`);
+              return;
+          }
+
+          const data: Destination[] = (await destRes.json()).filter((d: Destination) => d.doc_id !== anchor.nodeId);
+          if (data.length === 0) {
+              toast.warning("No destinations found for this site.");
+              return;
+          }
+          setSiteId(anchor.siteId);
+          setStartNodeId(anchor.nodeId);
+          setStartName(waypoint.name || anchor.nodeId);
+          setDestinations(data);
+          setSelectedDest("");
+          setAppState('SELECT');
+          toast.success(`${data.length} destinations loaded`);
       } catch (e) {
           console.error(e);
           toast.error("Failed to connect to Backend");
+      } finally {
+          busyRef.current = false;
       }
   };
 
   const handleRealScan = (data: string) => {
-      if (appState === 'SCAN') {
-          // Simple debounce/lock mechanism could be added here
-          processCode(data);
-      }
+      if (appState === 'SCAN') processCode(data);
   };
 
-  const handleSimulatedScan = () => {
-      processCode("AZAD_G1_ENT");
-  };
+  // Opened from the phone's camera app via the anchor URL (?site=…&node=…): skip the scan step.
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+      if (searchParams.get('site') && searchParams.get('node')) processCode(window.location.href);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   // ------------------------------------------------------------------
@@ -176,16 +211,18 @@ const TestAR = () => {
   // ------------------------------------------------------------------
   const startNavigation = async () => {
       if (!selectedDest) return;
+      // Request permission before any await, while still inside the tap's user activation.
+      const compassReady = compass.enable();
       try {
-          const baseUrl = backendUrl.replace(/\/$/, '');
-          const res = await fetch(`${baseUrl}/api/ar-path?from=${startNodeId}&to=${selectedDest}`);
+          const res = await fetch(`${API_BASE}/api/ar-path?from=${startNodeId}&to=${selectedDest}`);
           const data = await res.json();
           
           if (data.found && data.path.length > 0) {
               setPath(data.path);
               setStepIndex(0);
               setAppState('NAVIGATE');
-              setBaseHeading(rawHeadingRef.current); 
+              if (!(await compassReady)) toast.warning("Compass unavailable — arrow will not track heading.");
+              setBaseHeading(rawHeading()); 
               toast.info("Navigation Started");
           } else {
               toast.error("No path found.");
@@ -251,23 +288,22 @@ const TestAR = () => {
 
               <div className="bg-black/60 backdrop-blur-xl p-6 rounded-3xl border border-white/10 text-center shadow-2xl w-full max-w-xs">
                   <h2 className="text-2xl font-bold mb-2">Scan QR Code</h2>
-                  <p className="text-sm text-gray-400 mb-6">Point at a station marker</p>
-                  
-                  <Button onClick={handleSimulatedScan} variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                      Simulate (No QR)
-                  </Button>
+                  <p className="text-sm text-gray-400">Point at a navigation marker</p>
 
-                  {/* Settings Toggle */}
+                  {/* Compass status — iOS needs this tap before any heading arrives */}
                   <div className="mt-4 pt-4 border-t border-white/10">
-                     <div className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2">
-                        <Settings className="h-3 w-3 text-gray-500" />
-                        <input 
-                            value={backendUrl} 
-                            onChange={(e) => setBackendUrl(e.target.value)} 
-                            className="bg-transparent border-none text-[10px] font-mono text-gray-500 w-full focus:outline-none"
-                            placeholder="Backend URL"
-                        />
-                     </div>
+                     <button
+                        onClick={() => void compass.enable()}
+                        disabled={compass.status !== 'needs-gesture'}
+                        className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2 w-full text-left disabled:cursor-default"
+                     >
+                        <Compass className="h-3 w-3 text-gray-500 shrink-0" />
+                        <span className="text-[10px] font-mono text-gray-400">
+                            Compass: {compass.status === 'active'
+                                ? `${Math.round(smoothHeading)}° · ${compass.sampleRef.current?.eventType}${compass.sampleRef.current?.absolute ? ' (absolute)' : ' (relative)'}`
+                                : COMPASS_LABEL[compass.status]}
+                        </span>
+                     </button>
                   </div>
               </div>
           </div>
@@ -282,13 +318,13 @@ const TestAR = () => {
                      <div className="bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full text-xs font-bold mb-3 border border-blue-500/20 flex items-center gap-2">
                         <MapPin className="h-3 w-3" /> CURRENT LOCATION
                      </div>
-                     <h2 className="text-3xl font-bold text-center mb-1">Azad Nagar</h2>
-                     <p className="text-zinc-400 text-sm font-mono tracking-wide">{startNodeId}</p>
+                     <h2 className="text-3xl font-bold text-center mb-1">{startName}</h2>
+                     <p className="text-zinc-400 text-sm font-mono tracking-wide">{siteId} · {startNodeId}</p>
                  </div>
 
                  <div className="space-y-4">
                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Navigate To</label>
-                     <Select onValueChange={setSelectedDest}>
+                     <Select value={selectedDest} onValueChange={setSelectedDest}>
                         <SelectTrigger className="bg-zinc-800/50 border-zinc-700/50 text-white h-16 text-lg rounded-2xl px-4 focus:ring-2 focus:ring-blue-500/50">
                             <SelectValue placeholder="Select destination..." />
                         </SelectTrigger>
@@ -387,7 +423,7 @@ const TestAR = () => {
                           
                           {/* Subtle recalibrate button */}
                           <button 
-                             onClick={() => { setBaseHeading(rawHeadingRef.current); toast.success("Recalibrated"); }}
+                             onClick={() => { setBaseHeading(rawHeading()); toast.success("Recalibrated"); }}
                              className="text-xs text-gray-500 underline opacity-50"
                           >
                              Arrow wrong? Tap to reset forward.
@@ -405,4 +441,4 @@ const TestAR = () => {
   );
 };
 
-export default TestAR;
+export default ARNavigation;

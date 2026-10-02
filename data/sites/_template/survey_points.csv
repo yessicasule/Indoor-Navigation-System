@@ -1,0 +1,5 @@
+point_id,x,y,floor,align_map_bearing_deg,notes
+P01,0,5,0,0,
+P02,0,10,0,0,near steel door frame
+P03,10,15,0,90,
+P04,20,15,0,90,electrical room on left

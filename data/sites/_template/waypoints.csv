@@ -1,0 +1,9 @@
+node_id,name,type,x,y,z,floor,neighbors,anchor_map_bearing_deg,notes
+A1,Main Entrance,anchor,0,0,0,0,C1,0,"QR on wall beside door; scanner faces map +y"
+C1,Corridor Node 1,path,0,15,0,0,C2;LAB101,,
+C2,Corridor Node 2,path,20,15,0,0,STG,,
+LAB101,Lab 101,room,-5,15,0,0,,,
+STG,Stairs Node G,path,20,20,0,0,ST1,,
+ST1,Stairs Node 1F,path,20,20,4,1,A2;R201,,
+A2,First Floor Landing,anchor,22,20,4,1,,270,"QR on landing wall; scanner faces map -x"
+R201,Room 201,room,25,20,4,1,,,

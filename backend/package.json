@@ -2,10 +2,14 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Backend for Metro Mitra",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.ts"
+    "start": "ts-node index.ts",
+    "dev": "nodemon index.ts",
+    "test": "ts-node astar.test.ts",
+    "import-site": "ts-node scripts/import-site.ts",
+    "anchors": "ts-node scripts/make-anchors.ts",
+    "export": "ts-node scripts/export-telemetry.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,13 +22,12 @@
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "firebase-admin": "^12.7.0",
-    "node-fetch": "^3.3.2",
     "nodemon": "^3.1.0",
+    "qrcode": "^1.5.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "devDependencies": {
-    "@types/dotenv": "^6.1.1",
-    "@types/node-fetch": "^2.6.13"
+    "@types/qrcode": "^1.5.6"
   }
 }

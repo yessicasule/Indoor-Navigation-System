@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -54,7 +55,7 @@ const MapView = () => {
     const fetchStations = async () => {
       try {
         setIsStationsLoading(true);
-        const response = await fetch("http://localhost:3001/api/stations");
+        const response = await fetch(`${API_BASE}/api/stations`);
         if (!response.ok) throw new Error("Failed to fetch stations");
         const data: Station[] = await response.json();
         setStations(data);
@@ -103,7 +104,7 @@ const MapView = () => {
   const fetchNearestStation = async (coords: GeolocationCoordinates) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/nearest-station?lat=${coords.latitude}&long=${coords.longitude}`
+        `${API_BASE}/api/nearest-station?lat=${coords.latitude}&lon=${coords.longitude}`
       );
       if (!response.ok) {
         const err = await response.json();
@@ -140,7 +141,7 @@ const MapView = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/route?from=${fromStationId}&to=${toStationId}`
+        `${API_BASE}/api/route?from=${fromStationId}&to=${toStationId}`
       );
       if (!response.ok) {
         const err = await response.json();

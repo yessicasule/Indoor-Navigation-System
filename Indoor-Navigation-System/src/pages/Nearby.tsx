@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +31,7 @@ const Nearby = () => {
     const fetchStations = async () => {
       try {
         setIsStationsLoading(true);
-        const response = await fetch("http://localhost:3001/api/stations");
+        const response = await fetch(`${API_BASE}/api/stations`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -57,7 +58,7 @@ const Nearby = () => {
       try {
         setIsPoisLoading(true);
         // NEW: Check if we are fetching "all" or a specific station
-        let apiUrl = "http://localhost:3001/api/pois";
+        let apiUrl = `${API_BASE}/api/pois`;
         if (selectedStation !== "all") {
           apiUrl += `?stationId=${selectedStation}`;
         }
